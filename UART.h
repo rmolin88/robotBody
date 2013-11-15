@@ -18,7 +18,7 @@
 //void Key_UART_Recog(void);
 void UART_TRANS(char trans, FILE *stream);
 void UART_INIT(void);
-
+void serialDecodify();
 
 
 

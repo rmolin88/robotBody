@@ -18,7 +18,7 @@ extern volatile uint16_t sonarReading2;												//left sonar	PA.1 purple cabl
 
 void ADC_Init(){
 	
-	ADCA_CTRLB			|= ADC_CONMODE_bm;										//plus 12-bit resolution right adjusted
+	ADCA_CTRLB			= ADC_CONMODE_bm;										//plus 12-bit resolution right adjusted
 	ADCA_REFCTRL		= ADC_REFSEL_VCC_gc;									//Reference Vcc/1.6V
 	ADCA_PRESCALER		= ADC_PRESCALER_DIV32_gc;
 	
@@ -31,7 +31,7 @@ void ADC_Init(){
 	ADCA_CH2_CTRL		= ADC_CH_INPUTMODE_DIFF_gc;
 	ADCA_CH2_MUXCTRL	= ADC_CH_MUXPOS_PIN2_gc + ADC_CH_MUXNEG_INTGND_gc;				//selecting pin adc2 center
 	
-	ADCA_CTRLA			|= ADC_ENABLE_bm;
+	ADCA_CTRLA			= ADC_ENABLE_bm;
 	
 	/*	PC5 for speaker
 		PC4 TX daisy chain signal
@@ -52,6 +52,8 @@ void sonarRead()
 {
 	sonarReading0 = sonarReading1 = sonarReading2 = 1000;
 	
+
+	
 	//READING RIGHT SONAR
 	ADCA_CTRLA |= ADC_CH0START_bm + ADC_CH1START_bm + ADC_CH2START_bm;							//signaling a start a conversion
 	while( !(ADCA_CH0_INTFLAGS & 1) );						//waiting for conversion to finish
@@ -70,7 +72,4 @@ void sonarRead()
 	_delay_us(50);											//waiting a bit more
 	sonarReading1 += ADCA_CH2RES;							//recording conversion value
 	ADCA_CH2_INTFLAGS = 1;									//clearing the interrupt flag
-	
-	
-	
 }

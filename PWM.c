@@ -15,19 +15,28 @@
 #include <util/delay.h>
 
 
-extern char actuatorReceived;
-extern char Serial_Receive[5];
+#define forward 3400		//get this values as close as possible to 1600
+#define reverse 3000
 
-volatile uint16_t motorTemp = 3200;
-volatile uint16_t servoTemp = 3000;
-uint16_t motor = 0;
-uint16_t servo = 0;
+#define left 2400
+#define right 3600
+#define straight 3000
 
-
-#define PER_54HZ 0x90AD  
+#define PER_54HZ 0x90AD
+#define PER_50HZ 40000
 #define SINGLE_SLOPE_PWM 3
 #define MOTORS_OFF 3200
 #define wheelStraight 3000
+
+
+extern char Serial_Receive[11];
+
+uint16_t servoTemp = 3000;
+uint16_t motor;
+uint16_t steeringServo;
+uint16_t cameraServo;
+
+
 
 void PWM_Init()
 {
@@ -53,168 +62,139 @@ void PWM_Init()
 	//SERVO/Motor SET UP
 	TCC0_PER = PER_54HZ;						//fpwm = 54Hz = 18.5 ms | PER = (1/54)/(1/(16e6/64)) = 9259.3 = 0x242B
 	TCC0_CTRLB |= TC0_CCAEN_bm + TC0_CCBEN_bm + SINGLE_SLOPE_PWM;							//bit[4] cca, ccb enable bit[2:0] single slop bottom to top
-	TCC0_CCA = MOTORS_OFF;							//starting off Motors at 1.5
-	TCC0_CCB = wheelStraight;							//starting off Servos at 1.5
+	TCC0_CCA = MOTORS_OFF;							//starting off Motor at 1.5
+	TCC0_CCB = wheelStraight;							//starting off Servo at 1.5
 	TCC0_CTRLA = TC_CLKSEL_DIV1_gc;				//clock at full speed = 1 | Div/1024 = 7 | Div/64 = 5
+	
+	TCC1_PER = PER_50HZ;						//fpwm = 54Hz = 18.5 ms | PER = (1/54)/(1/(16e6/64)) = 9259.3 = 0x242B
+	TCC1_CTRLB |= TC0_CCBEN_bm + SINGLE_SLOPE_PWM;							//bit[4] cca, ccb enable bit[2:0] single slop bottom to top
+	//TCC0_CCA = MOTORS_OFF;							//starting off Motors at 1.5
+	TCC1_CCB = 3000;							//starting off Servos at 1.5
+	TCC1_CTRLA = TC_CLKSEL_DIV1_gc;				//clock at full speed = 1 | Div/1024 = 7 | Div/64 = 5
 	//_delay_ms(1000);
 	
-	
-	
-// 	for(int i = 0x960; i<0x0BB8; i++)
-// 	{
-// 		TCC0_CCB = i;
-// 		_delay_ms(10);
-// 	}
-// 	for(int i = 0x0BB8; i>0x960; i--)
-// 	{
-// 		TCC0_CCB = i;
-// 		_delay_ms(10);
-// 	}
-	
 }
 
 
 
-void motorPulse()
-{
-	/*	Function PWM_Pulse_v2.0
-	*
-	*	Dependencies: 
-	*		PWM_Init()
-	*		
-	*	Description:
-	*		sends pulse to desired actuator
-	*		protects servo from pulse higher than 10%
-	* 
-	*	Duty Cycle Calcs:
-	*		Use the PWM Calculator Doc
-	*
-	*	About servos
-	*		never give it a bigger than duty cycle than 10%
-	*		include for this
-	*		1ms pulse to turn left
-	*		2ms pulse to turn right
-	*		1.5ms pulse to center
-	*
-	*	About motors
-	*		1.2ms Full Reverse
-	*		1.35 Revers
-	*		1.5ms Neutral
-	*		1.65 Forward
-	*		1.8ms Full Forward
-	*
-	*	//SERVO DEFINES
-	*	#define Hard_Left 0x1f
-	*	#define Left 0x27
-	*	#define Straight 0x2e
-	*	#define Right 0x36
-	*	#define Hard_Right 0x3e
-	*
-	*	//MOTOR DEFINES
-	*	#define Full_Reverse 0x25
-	*	#define Reverse 0x2a
-	*	#define Neutral 0x2e
-	*	#define Forward 0x33
-	*	#define Full_Forward 0x38
-	*
-	*	#define Motor 0
-	*	#define Servo 1
-	*	
-	*/
-	actuatorReceived = Serial_Receive[0];
-	//printf("%c", actuatorReceived);
-	switch(actuatorReceived)
-	{
-		case 's':
-			motor = 3200;
-			break;
-		case 'f':
-			if(motorTemp == 3000)
+void actuateMotors(){
+		motor = 0;
+		steeringServo = 0;
+		cameraServo = 0;
+		
+		for(int i = 0; i<4; i++)
+		{
+			switch(i)
 			{
-				motor = 3200;
-				break;
+				case 0:
+					motor			+= (Serial_Receive[0] - '0')*1000;
+					steeringServo	+= (Serial_Receive[4] - '0')*1000;
+					cameraServo		+= (Serial_Receive[8] - '0')*1000;
+					break;
+				case 1:
+					motor			+= (Serial_Receive[1] - '0')*100;
+					steeringServo	+= (Serial_Receive[5] - '0')*100;
+					cameraServo		+= (Serial_Receive[9] - '0')*100;
+					break;
+				case 2:
+					motor			+= (Serial_Receive[2] - '0')*10;
+					steeringServo	+= (Serial_Receive[6] - '0')*10;
+					cameraServo		+= (Serial_Receive[10] - '0')*10;
+					break;
+				case 3:
+					motor			+= (Serial_Receive[3] - '0');
+					steeringServo	+= (Serial_Receive[7] - '0');
+					cameraServo		+= (Serial_Receive[11] - '0');
+					break;
 			}
-			motor = 3400;
-			break;
-		case 'r':
-			if(motorTemp == 3400)
-			{
-				motor = 3200;
-				break;
+		}
+		
+		if ( (motor > 4000) | (motor < 1800) ) printf("BAD PWM");
+		else TCC0_CCA = motor;
+		printf("%d motor value\r", motor);
+		
+		if ( (steeringServo > 3600) | (steeringServo < 2400) ) printf("BAD PWM");
+		else TCC0_CCB = steeringServo ;
+		printf("%d steeringServo value\r", steeringServo);
+		
+		//if ( (motor > 3400) | (motor < 2700) ) printf("BAD PWM"); return;
+		//TCC1_CCB = cameraServo;
+		if(cameraServo > servoTemp){
+			for(servoTemp; !(cameraServo == servoTemp); servoTemp++ ){
+				TCC1_CCB = servoTemp;
+				_delay_us(100);
 			}
-			motor = 3000;
-			break;
-	}
-	//printf("motor value %u\r", motor);
-	if (motorTemp == motor)return;
-	if(motor > motorTemp)
-	{
-		while(!(motorTemp == motor))										//slowly getting the motor pulse high
-		{
-			motorTemp += 1;
-			if( (motorTemp > 3400) | (motorTemp < 2700) ) return;				//preventing the motor values to ramp up or down
-			TCC0_CCA = motorTemp;
-			_delay_us(10);
 		}
-	}
-	else
-	{
-		while(!(motorTemp == motor))										//slowly getting the motor pulse low
-		{
-			motorTemp -= 1;
-			if( (motorTemp > 3400) | (motorTemp < 2700) ) return;
-			TCC0_CCA = motorTemp;
-			_delay_us(10);
+		else{
+			for(servoTemp; !(cameraServo == servoTemp); servoTemp-- ){
+				TCC1_CCB = servoTemp;
+				_delay_us(100);
+			}		
 		}
+		printf("%d cameraServo value\r", cameraServo);
+		
 	}
-	if (motorTemp == 3200) _delay_ms(1);								//if order is to stop motors give it a bit more rest so they stop
-	//printf("motorTemp value %u\r", motorTemp);
-}
 
-void servoPulse()
-{
-	
-	for(int i = 0; i<4; i++)
-	{
-		switch(i)
+/*//actuatorReady = 0;					
+		switch(Serial_Receive[0])
 		{
-			case 0:
-			servo += (Serial_Receive[1] - '0')*1000;
-			break;
-			case 1:
-			servo += (Serial_Receive[2] - '0')*100;
-			break;
-			case 2:
-			servo += (Serial_Receive[3] - '0')*10;
-			break;
-			case 3:
-			servo += (Serial_Receive[4] - '0');
-			break;
+			case 's':
+				//motor = MOTORS_OFF;
+				TCC0_CCA = MOTORS_OFF;
+				break;
+			
+			case 'f':
+				//motor = forward;
+				TCC0_CCA = forward;
+				break;
+			
+			case 'r':
+				//motor = reverse;
+				TCC0_CCA = reverse;
+				break;
 		}
-	}
-	//printf("%d", servo);
-	
-	
-	if (servoTemp == servo)return;
-	if(servo > servoTemp)
-	{
-		while(!(servoTemp == servo))										//slowly getting the motor pulse high
-		{
-			servoTemp += 1;
-			if( (servoTemp > 3600) | (servoTemp < 2400) ) return;				//preventing the motor values to ramp up or down
-			TCC0_CCB = servoTemp;
-			_delay_us(10);
+		if(motor > motorTemp){
+			for(motorTemp; !(motor == motorTemp); motorTemp++ ){
+				TCC0_CCA = motorTemp;
+				_delay_ms(5);
+			}
 		}
-	}
-	else
-	{	
-		while(!(servoTemp == servo))										//slowly getting the motor pulse low
-		{
-			servoTemp -= 1;
-			if( (servoTemp > 3400) | (servoTemp < 2700) ) return;
-			TCC0_CCB = servoTemp;
-			_delay_us(10);
+		else{
+			for(motorTemp; !(motor == motorTemp); motorTemp-- ){
+				TCC0_CCA = motorTemp;
+				_delay_ms(5);
+			}
 		}
-	}
-	//printf("servoTemp value %u\r", servoTemp);
-}
+		
+		switch(Serial_Receive[1]){
+			case 'l':
+				//servo = left;
+				TCC0_CCB = left;
+				break;
+			
+			case 'r':
+				//servo = right;
+				TCC0_CCB = right;
+				break;
+			
+			case 's':
+				//servo = straight;
+				TCC0_CCB = straight;
+				break;
+		}
+		if(servo > servoTemp){
+			for(servoTemp; !(servo == servoTemp); servoTemp++ ){
+				TCC0_CCA = servoTemp;
+				_delay_us(200);
+			}
+		}
+		else{
+			for(servoTemp; !(servo == servoTemp); servoTemp-- ){
+				TCC0_CCA = servoTemp;
+				_delay_us(200);
+			}		
+		}
+		*/
+		//actuatorReady = 1;
+		
+		

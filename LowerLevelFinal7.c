@@ -18,14 +18,13 @@
 
 static FILE mystdout = FDEV_SETUP_STREAM(UART_TRANS, NULL, _FDEV_SETUP_WRITE);
 
-volatile uint16_t sonarReading0 = 1000;
-volatile uint16_t sonarReading1 = 2000;
-volatile uint16_t sonarReading2 = 3000;
+volatile uint16_t sonarReading0;
+volatile uint16_t sonarReading1;
+volatile uint16_t sonarReading2;
 
-
+//uint8_t actuatorReady = 1;
 uint8_t volatile Serial_Finish = 0;
-char actuatorReceived = 0;
-char volatile Serial_Receive[5];
+char volatile Serial_Receive[11];
 
 uint8_t volatile receive = 0;				//receives data from UART interrupt
 
@@ -34,51 +33,30 @@ uint8_t ledCounter = 5;
 int main(void)
 {
 	stdout = &mystdout;
+	general_init();
 	UART_INIT();
 	PWM_Init();
-	feedback_init();
 	ADC_Init();
 	
-	
-	_delay_ms(1000);
+	_delay_ms(250);
 	Interrupt_Init();
 	
-	beep();
+	//beep();
 	printf("Initialization Complete\n");
 	
-	for(;;)
-    {
-		ledCounter--;
-		if(!ledCounter){
-			toggle_leds();
-			ledCounter = 5;	
-		}
-		
+	for(;;){
 		if(Serial_Finish){
-			Serial_Receive[0] = receive;
-			Serial_Finish = 0;
+			serialDecodify();
 			
-			do{}while(!Serial_Finish);
-			Serial_Receive[1] = receive;
-			Serial_Finish = 0;
-			
-			do{}while(!Serial_Finish);
-			Serial_Receive[2] = receive;
-			Serial_Finish = 0;
-			
-			do{}while(!Serial_Finish);
-			Serial_Receive[3] = receive;
-			Serial_Finish = 0;
-			
-			do{}while(!Serial_Finish);
-			Serial_Receive[4] = receive;
-			Serial_Finish = 0;
-			
-			motorPulse();
-			servoPulse();
-			sonarRead();
-			if( (sonarReading0 < 1000) | (sonarReading1 < 1000) | (sonarReading2 < 1000)) sonarReading0 = sonarReading1 = sonarReading2 = 1000;
-			printf("%u%u%u", sonarReading0, sonarReading1, sonarReading2);
+			actuateMotors();
+			//sonarRead();
+			//if( (sonarReading0 < 1000) | (sonarReading1 < 1000) | (sonarReading2 < 1000)) sonarReading0 = sonarReading1 = sonarReading2 = 1000;
+			//printf("%u%u%u", sonarReading0, sonarReading1, sonarReading2);		//might get an error here because needs interrupts to send data through UART
+			ledCounter--;
+			if(!ledCounter){
+				toggle_leds();
+				ledCounter = 5;
+			}
 		}
 	}
 }

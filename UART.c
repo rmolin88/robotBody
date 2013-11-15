@@ -10,7 +10,7 @@
 
 #include "UART.h"
 
-
+extern char volatile Serial_Receive[11];
 extern uint8_t volatile Serial_Finish;
 extern uint8_t volatile receive ;
 
@@ -40,16 +40,14 @@ void UART_INIT()
 	*
 	*/
 	
-	char BSEL = 150;
-	char BSCALE = -7;
 	
-	//PORTC_OUTSET = 0x04;		//SETTING THIS PIN AS HIGH AND THEN AS OUTPUT
-	USARTC0_CTRLA |= USART_RXCINTLVL0_bm;	//RECEIVED INTERRUPT ENABLE
+	USARTC0_CTRLA = USART_RXCINTLVL0_bm;	//RECEIVED INTERRUPT ENABLE
 	USARTC0_CTRLB = USART_RXEN_bm + USART_TXEN_bm;// 0x18;	//receiver and transmitter enabled
-	USARTC0_CTRLC = USART_CHSIZE_8BIT_gc;		//ASYNCHRONOUS MODE
+	USARTC0_CTRLC = USART_CMODE_ASYNCHRONOUS_gc | USART_PMODE_DISABLED_gc | USART_CHSIZE_8BIT_gc;		//ASYNCHRONOUS MODE
 	
-	USARTC0_BAUDCTRLA =	(BSEL & 0xFF);
-	USARTC0_BAUDCTRLB = ((BSCALE << 4 & 0xF0 ) | (BSEL >> 8 & 0x0F));
+	//BSEL = -7 & BSCALE = 150
+	USARTC0_BAUDCTRLA =	0x96;
+	USARTC0_BAUDCTRLB = 0x90;
 }				
 
 
@@ -98,7 +96,65 @@ void UART_TRANS(char trans, FILE *stream)
 }
 
 
+void serialDecodify(){
+	
+	//******************************
+	//		MOTOR COMMAND
+	//******************************
+	Serial_Receive[0] = receive;
+	Serial_Finish = 0;
+	
+	do{}while(!Serial_Finish);
+	Serial_Receive[1] = receive;
+	Serial_Finish = 0;
+	
+	do{}while(!Serial_Finish);
+	Serial_Receive[2] = receive;
+	Serial_Finish = 0;
 
+	do{}while(!Serial_Finish);
+	Serial_Receive[3] = receive;
+	Serial_Finish = 0;
+
+	//******************************
+	//	STEERING SERVO COMMAND
+	//******************************
+	do{}while(!Serial_Finish);
+	Serial_Receive[4] = receive;
+	Serial_Finish = 0;
+	
+	do{}while(!Serial_Finish);
+	Serial_Receive[5] = receive;
+	Serial_Finish = 0;
+	
+	do{}while(!Serial_Finish);
+	Serial_Receive[6] = receive;
+	Serial_Finish = 0;
+
+	do{}while(!Serial_Finish);
+	Serial_Receive[7] = receive;
+	Serial_Finish = 0;
+	
+	//******************************
+	//	CAMERA SERVO COMMAND
+	//******************************
+	do{}while(!Serial_Finish);
+	Serial_Receive[8] = receive;
+	Serial_Finish = 0;
+	
+	do{}while(!Serial_Finish);
+	Serial_Receive[9] = receive;
+	Serial_Finish = 0;
+	
+	do{}while(!Serial_Finish);
+	Serial_Receive[10] = receive;
+	Serial_Finish = 0;
+
+	do{}while(!Serial_Finish);
+	Serial_Receive[11] = receive;
+	Serial_Finish = 0;
+	
+}
 
 
 

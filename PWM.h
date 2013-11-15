@@ -6,7 +6,7 @@
 #include <avr/io.h>
 
 void PWM_Init();
-void motorPulse();
-void servoPulse();
+void actuateMotors();
+//void servoPulse();
 
 #endif	/* SONAR_H_ */

@@ -11,7 +11,7 @@
 #define FEEDBACK_H_
 
 
-void feedback_init();
+void general_init();
 void beep();
 void toggle_leds();
 
